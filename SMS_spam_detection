@@ -1,0 +1,59 @@
+# Import the necessary libraries
+import pandas as pd  # For reading and handling data
+from sklearn.model_selection import train_test_split  # To split data into training and test sets
+from sklearn.feature_extraction.text import TfidfVectorizer  # To convert text into numbers
+from sklearn.naive_bayes import MultinomialNB  # The machine learning model used for classification
+from sklearn.metrics import accuracy_score, classification_report  # To evaluate the model's performance
+
+# STEP 1: Load the dataset
+# We read the CSV file containing SMS messages and their labels (ham or spam)
+df = pd.read_csv("spam.csv", encoding='latin-1')[['v1', 'v2']]  # Keep only label and message columns
+df.columns = ['label', 'message']  # Rename columns to 'label' and 'message' for simplicity
+
+# STEP 2: Convert labels to numbers
+# Since machine learning works with numbers, we convert 'ham' to 0 and 'spam' to 1
+df['label'] = df['label'].map({'ham': 0, 'spam': 1})
+
+# STEP 3: Split the data
+# We divide the data into training (80%) and testing (20%) sets
+X_train, X_test, y_train, y_test = train_test_split(
+    df['message'],  # the messages
+    df['label'],    # the corresponding labels
+    test_size=0.2,  # 20% goes to testing
+    random_state=42 # for reproducibility
+)
+
+# STEP 4: Text to numbers using TF-IDF
+# We convert the messages into a numerical format using TF-IDF (which considers how important a word is)
+vectorizer = TfidfVectorizer()  # Create the vectorizer
+X_train_vec = vectorizer.fit_transform(X_train)  # Learn vocabulary and transform training data
+X_test_vec = vectorizer.transform(X_test)        # Transform testing data using the same vocabulary
+
+# STEP 5: Train the model
+# We create and train the Naive Bayes model using the vectorized messages
+model = MultinomialNB()  # Create the model
+model.fit(X_train_vec, y_train)  # Train the model on the training data
+
+# STEP 6: Predict on test data
+# We use the trained model to predict whether messages in the test set are spam or not
+y_pred = model.predict(X_test_vec)
+
+# STEP 7: Evaluate the model
+# We check how accurate our model is by comparing predictions with actual labels
+print("Accuracy:", accuracy_score(y_test, y_pred))  # Overall accuracy
+print("\nDetailed Report:\n", classification_report(y_test, y_pred))  # More metrics like precision & recall
+
+# STEP 8: Make predictions on new messages
+# This function takes a custom message and tells whether it's spam or not
+def predict_spam(text):
+    # Convert the message to the same format as training data
+    text_vec = vectorizer.transform([text])
+    # Use the model to make a prediction
+    prediction = model.predict(text_vec)
+    # Return a user-friendly result
+    return "Spam" if prediction[0] else "Not Spam"
+
+# Example usage of the function
+print("\nCustom Message Test:")
+print(predict_spam("Congratulations! You've won a $1000 Walmart gift card. Call now!"))
+  
